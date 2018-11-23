@@ -10,60 +10,144 @@
 #free object
 
 class List:
-	def __init__(self,nelements ): 
-		# |prev,nex,key|=nelements+1 para dejar a un NaN centinela en self.next[0] que refiera al ultimo de la lista.
-		self.prev=(nelements+1)*[0]
-		self.next=(nelements+1)*[0]
-		for i in range(1,nelements+2): self.next[i]=i-1 
-		#inicializa a next como lista en donde cada elemento a partir de self.next[1] apunta a su predecesor.
-		self.next[0]=NaN 
-		self.key=(nelements+1)*[0]
 
-		self.head=NaN #deberia ser x tal que x.prev=NaN
-		self.free=self.next[nelements+1] #valor inicial de free, puede no funcionar por ser originalmente variable global.
+	def __init__(self,nelements): 
+		#atributos de lista:
+		self.prev=nelements*[0]
+		for i in range(nelements-1,0,-1): self.prev[i]=i-1 #apuntadores del prev de F iniciados
+		self.prev[0]=None
+
+		self.next=nelements*[0]
+		for j in range(0,nelements-1): self.next[j]=j+1 #apuntadores del next de F iniciados
+		self.next[nelements-1]=None 
+
+		self.key=nelements*[None] #La lista esta vacia
+		self.head=None
+		self.free=0
 		
 
-#Como los x referenciaran indices de un arreglo, verificar que no excendan n-1.
+	#Operaciones de lista: 
 
-	def list_insert(self,x):
-		#Verificar que la lista no este llena
+	def list_insert(self,value):
+		x=self.allocate_object() 
+
 		self.next[x]=self.head
-		if self.head!=NaN:
-			prev[self.head]=x
+		if self.head!=None:
+			self.prev[self.head]=x
 		self.head=x
-		self.prev[x]=NaN
+		self.prev[x]=None
+
+		self.key[x]=value
 	
 	def list_delete(self,x): 
-		#revisar bien orden de composicion.
-		if self.prev[x]!=NaN:
+		if self.prev[x]!=None:
 			self.next[self.prev[x]]=self.next[x] 
 		else:	
 			self.head=self.next[x]
 
-		if self.next[x]!=NaN: 
-			self.prev[self.next[x]]=self		
+		if self.next[x]!=None: 
+			self.prev[self.next[x]]=self.prev[x]
+		
+		self.free_object(x) #Se anade a la lista F el elemento eliminado
+				
+	#Operaciones de la lista free:
 
 	def allocate_object(self): 
-		if free==NaN:
-			print('Error!, sin espacio') 
+		if self.free==None:
+			return "No hay espacio disponible"
 		else: 
 			x=self.free
 			self.free=self.next[x]		
+			if self.free!=None:
+				self.prev[self.free]=None #reacomodamiento - puede haber un error aqui
 		return x
 
 	def free_object(self,x): 
 		self.next[x]=self.free
+		self.prev[x]=None
+		if self.next[x]!=None:
+			self.prev[self.next[x]]=x #reacomodamiento
 		self.free=x
+		self.key[x]=None
 
-#Dudas: 
-#Las listas deberian poder definirse una vez son creadas??
-#Si el argumento de list es un apuntador, en que momento se define su self.key[x]??
+#arreglar esta vaina:
+	def list_swap(self,x,y): 
+		"""
+		if x==y+1:
+			self.prev[y]=self.prev[x]
+			self.next[x]=self.next[y]
+			self.next[y]=x
+			self.next[x]=y
+		elif y==x+1:
+			self.prev[x]=self.prev[y]
+			self.next[y]=self.next[x]
+			self.next[x]=y
+			self.next[y]=x
+		else:
+		"""
+		if self.next[x]!=None: self.prev[self.next[x]]=y
+		if self.prev[y]!=None: self.next[self.prev[y]]=x
+		if self.prev[x]!=None: self.next[self.prev[x]]=y
+		if self.next[y]!=None: self.prev[self.next[y]]=x
+		
+		self.key[x],self.key[y]=self.key[y],self.key[x]
 
-#consideraciones: 
-#Para aniadir: list_insert(allocate_object()) aniadira el proximo elemento en la posicion indicada por el orden 
-#de los elementos en next (que debe definirse en el constructor??) 
+	def compactify_list(self): 
+		if self.head==None or self.free==None: 
+			return "Nada que organizar"		
+		else:
+			print('va a organizar algo') 
+			i,j=0,len(self.key)-1
+			while i<j:
+				print('entro en el while')
+				if str(self.key[i])!='None':
+					print('entro al primero')
+					i+=1
+				
+				if str(self.key[j])=='None':
+					print('entro al segundo')
+					j-=1
 
-#Para eliminar: list_delete(x) ; free_object(x) una vez eliminado un elemento de la lista, se coloca el apuntador indicado
-#como 'free' <- esto quiere decir que el proximo elemento a aniadir se colocara sobre ese apuntador
+				if str(self.key[i])=='None' and str(self.key[j])!='None':
+					print('entro en el if importante')
+					self.list_swap(i,j)
+					i,j=i+1,j-1
+	#printing
 
-#Tanto el uso de list insert como la liberacion de espacio en free_object(x) nos dicen que HAY UN ORDEN DE COLOCACION PREDEFINIDO.
+	def __str__(self): 
+
+		if self.head==None or self.free==None:
+			return "List: \n next=%s \n key=%s \n prev=%s \n head=%s, free=%s " % (str(self.next),str(self.key),str(self.prev),str(self.head),str(self.free))
+		else:
+			return "List: \n next=%s \n key=%s \n prev=%s \n head=%d, free=%d " % (str(self.next),str(self.key),str(self.prev),self.head,self.free)
+
+	__repr__=__str__
+
+#Pruebas:
+a=List(5)
+print('lista inicializada')
+print(a)
+a.list_insert(55)
+a.list_insert(3)
+a.list_insert(5)
+a.list_insert(7)
+a.list_insert(8)
+print('lista con anadidos')
+print(a)
+a.list_delete(0)
+print('lista con el ultimo elemento eliminado') 
+print(a)
+a.list_delete(2)
+print('lista con un elemento distinto al primero eliminado') 
+print(a)
+a.compactify_list()
+print('lista compacta') 
+print(a)
+
+"""
+print('Pruebas malandrosas')
+n=int(input('INgrese el tamanio de la lista de prueba: '))
+b=list(n)
+for x in range(n): 
+	
+"""
